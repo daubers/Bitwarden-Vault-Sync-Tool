@@ -1,0 +1,99 @@
+services:
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: bitwardensync-vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-root}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://127.0.0.1:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Generates a self-signed cert into the vaultwarden-tls volume on first run.
+  # The Bitwarden web-vault client refuses to talk to a plain-HTTP origin, so
+  # vaultwarden needs TLS even for local dev.
+  tls-certs:
+    image: alpine:3.20
+    volumes:
+      - vaultwarden-tls:/ssl
+      - ./docker/tls-init/generate-cert.sh:/generate-cert.sh:ro
+    entrypoint: /bin/sh
+    command: ["-c", "apk add --no-cache openssl >/dev/null && sh /generate-cert.sh"]
+
+  vaultwarden:
+    image: vaultwarden/server:1.37.3
+    container_name: bitwardensync-vaultwarden
+    ports:
+      - "8443:80"
+    environment:
+      DOMAIN: https://localhost:8443
+      SIGNUPS_ALLOWED: "true"
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:-admin}
+      WEBSOCKET_ENABLED: "true"
+      ROCKET_TLS: '{certs="/ssl/cert.pem",key="/ssl/key.pem"}'
+    volumes:
+      - vaultwarden-data:/data
+      - vaultwarden-tls:/ssl:ro
+    depends_on:
+      tls-certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:80/alive"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot seeder: registers a demo Vaultwarden account (via the web-vault
+  # UI, since Bitwarden's zero-knowledge crypto happens client-side and can't
+  # be done with a raw API call) and populates it with sample login items to
+  # build/test bitwardensync against. Runs automatically with `docker compose
+  # up`; safe to rerun since it skips registration/items that already exist.
+  seed:
+    build: ./docker/seed
+    network_mode: "service:vaultwarden"
+    environment:
+      VAULTWARDEN_URL: https://localhost:80
+      SEED_EMAIL: ${SEED_EMAIL:-demo@example.com}
+      SEED_PASSWORD: ${SEED_PASSWORD:-SeedMasterPassw0rd!123}
+      SEED_NAME: ${SEED_NAME:-Demo User}
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      BITWARDENCLI_APPDATA_DIR: /data
+    volumes:
+      - seed-bw-data:/data
+    depends_on:
+      vaultwarden:
+        condition: service_healthy
+
+  # Ad-hoc `bw` CLI runner, pointed at the local vaultwarden instance.
+  # Not started by `docker compose up`. The server config and login session
+  # persist in the bw-cli-data volume, so configure once, then reuse:
+  #   docker compose run --rm bw-cli bw config server https://vaultwarden:80
+  #   docker compose run --rm bw-cli bw login demo@example.com
+  #   docker compose run --rm bw-cli bw sync
+  bw-cli:
+    build: ./docker/bw-cli
+    profiles: ["tools"]
+    environment:
+      BW_CLIENTID: ${BW_CLIENTID:-}
+      BW_CLIENTSECRET: ${BW_CLIENTSECRET:-}
+      BW_PASSWORD: ${BW_PASSWORD:-}
+      BITWARDENCLI_APPDATA_DIR: /data
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    volumes:
+      - bw-cli-data:/data
+    depends_on:
+      vaultwarden:
+        condition: service_healthy
+
+volumes:
+  vaultwarden-data:
+  vaultwarden-tls:
+  seed-bw-data:
+  bw-cli-data:

@@ -1,0 +1,26 @@
+[project]
+name = "bitwardensync"
+version = "0.1.0"
+description = "Sync secrets from Bitwarden into a HashiCorp Vault KV store"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "argon2-cffi>=25.1.0",
+    "cryptography>=50.0.1",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+bitwardensync = "bitwardensync.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bitwardensync"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
