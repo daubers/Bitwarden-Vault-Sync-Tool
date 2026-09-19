@@ -3,6 +3,7 @@ name = "bitwardensync"
 version = "0.1.0"
 description = "Sync secrets from Bitwarden into a HashiCorp Vault KV store"
 readme = "README.md"
+license = "BSD-3-Clause"
 requires-python = ">=3.13"
 dependencies = [
     "argon2-cffi>=25.1.0",

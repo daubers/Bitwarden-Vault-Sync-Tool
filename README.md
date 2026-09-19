@@ -189,3 +189,7 @@ sudo apt install bitwardensync
 
 (`trusted=yes` skips GPG signature verification — the feed isn't
 GPG-signed.)
+
+## License
+
+BSD 3-Clause. See [LICENSE](LICENSE).
