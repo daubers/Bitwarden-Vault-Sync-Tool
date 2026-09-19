@@ -16,5 +16,7 @@ if [ "$#" -gt 0 ]; then
     PLATFORM_ARGS=(--platform "$1")
 fi
 
-docker build "${PLATFORM_ARGS[@]+"${PLATFORM_ARGS[@]}"}" -t bitwardensync-deb-builder -f packaging/Dockerfile .
-docker run --rm "${PLATFORM_ARGS[@]+"${PLATFORM_ARGS[@]}"}" -v "$(pwd)":/src bitwardensync-deb-builder
+mkdir -p dist
+docker build "${PLATFORM_ARGS[@]+"${PLATFORM_ARGS[@]}"}" \
+    --target export --output type=local,dest=dist \
+    -f packaging/Dockerfile .

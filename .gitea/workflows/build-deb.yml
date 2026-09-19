@@ -1,6 +1,7 @@
 # Requires the runner to have Docker available (packaging/build.sh shells
-# out to `docker build`/`docker run`) — e.g. an act_runner with the host's
-# docker.sock mounted in.
+# out to `docker build`, using BuildKit's --output to extract the result —
+# no `docker run`/bind mount, so this also works under docker-outside-of-
+# docker, e.g. an act_runner with just the host's docker.sock mounted in).
 name: Build Debian package
 
 on:
