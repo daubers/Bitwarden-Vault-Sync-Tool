@@ -1,0 +1,13 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: bitwardensync
+Source: https://git.daubney.dev/matt/Bitwarden-Vault-Sync-Tool
+
+Files: *
+Copyright: 2025 Matthew Daubney <matt@daubney.dev>
+License: unspecified
+ No license file is present in the upstream repository; distribution terms
+ are unspecified. This package is built for private/internal use.
+
+Files: debian/*
+Copyright: 2025 Matthew Daubney <matt@daubney.dev>
+License: unspecified

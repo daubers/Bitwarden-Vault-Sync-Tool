@@ -1,0 +1,16 @@
+Package: bitwardensync
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: @ARCH@
+Installed-Size: @INSTALLED_SIZE@
+Depends: libc6
+Maintainer: Matthew Daubney <matt@daubney.dev>
+Description: Sync secrets from Bitwarden into a HashiCorp Vault KV v2 store
+ One-way sync tool that reads items out of a Bitwarden vault and writes
+ them into a HashiCorp Vault KV v2 secrets engine.
+ .
+ Ships as a fully self-contained package: a bundled Python 3.13 runtime
+ and all dependencies live under /opt/bitwardensync, so no system Python
+ or package versions are required. Configuration is via environment
+ variables; see /usr/share/doc/bitwardensync/env.example.

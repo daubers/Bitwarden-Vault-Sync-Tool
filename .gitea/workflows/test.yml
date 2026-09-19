@@ -23,3 +23,28 @@ jobs:
 
       - name: Run tests
         run: uv run pytest -v
+
+      - name: Notify tests passed
+        if: success()
+        env:
+          NTFY_USER: ${{ secrets.NTFY_USER }}
+          NTFY_PASSWORD: ${{ secrets.NTFY_PASSWORD }}
+        run: |
+          curl -sS -u "${NTFY_USER}:${NTFY_PASSWORD}" \
+            -H "Title: bitwardensync tests passed" \
+            -H "Tags: white_check_mark" \
+            -d "Tests passed on ${{ github.ref_name }} (${{ github.sha }})" \
+            "https://notify.daubney.dev/bitwardensync"
+
+      - name: Notify tests failed
+        if: failure()
+        env:
+          NTFY_USER: ${{ secrets.NTFY_USER }}
+          NTFY_PASSWORD: ${{ secrets.NTFY_PASSWORD }}
+        run: |
+          curl -sS -u "${NTFY_USER}:${NTFY_PASSWORD}" \
+            -H "Title: bitwardensync tests failed" \
+            -H "Priority: high" \
+            -H "Tags: x" \
+            -d "Tests failed on ${{ github.ref_name }} (${{ github.sha }})" \
+            "https://notify.daubney.dev/bitwardensync"

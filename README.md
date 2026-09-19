@@ -127,3 +127,65 @@ doesn't exist, the writes will fail with their own clear error instead.
 ```
 uv run pytest
 ```
+
+## Debian package
+
+`bitwardensync` requires Python >= 3.13 and dependency versions newer than
+what current Debian stable ships, so the `.deb` is fully self-contained: it
+bundles its own Python 3.13 base interpreter (a relocatable
+[python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+build, at `/opt/bitwardensync/python`) with a proper venv on top of it
+(`/opt/bitwardensync/venv`, holding bitwardensync and its dependencies —
+nothing is installed outside a venv), and `/usr/bin/bitwardensync` symlinked
+into it. No system Python or matching library versions are required on the
+target host. Configuration is still via environment variables (see
+`.env.example`, also installed to `/usr/share/doc/bitwardensync/env.example`)
+— the package doesn't install a systemd unit, so wire it up to cron/systemd
+yourself.
+
+Build it (requires Docker; the actual build runs inside a Debian container,
+so this works from any host OS/arch):
+
+```
+packaging/build.sh                  # native platform (fastest)
+packaging/build.sh linux/amd64      # cross-build for amd64
+```
+
+Cross-building depends on QEMU user-mode emulation for foreign
+architectures, which can be flaky for `uv`/Rust binaries (seen: segfaults
+under `linux/amd64` emulation on an Apple Silicon host). If a cross-build
+fails, build natively on a machine of the target architecture instead (e.g.
+an amd64 CI runner).
+
+Output lands in `dist/bitwardensync_<version>_<arch>.deb`. Install/remove
+with the usual:
+
+```
+sudo dpkg -i dist/bitwardensync_0.1.0_amd64.deb
+sudo dpkg -r bitwardensync
+```
+
+### Package feed
+
+The Gitea Actions workflow (`.gitea/workflows/build-deb.yml`) builds the
+`.deb` on every push/PR and uploads it as a workflow artifact; on pushes to
+`main` it also publishes to the `main` feed on the self-hosted ProGet
+instance at `pkgs.daubney.dev` (distribution `stable`, component `main`),
+using the `PKGS_USER`/`PKGS_PASSWORD` repo secrets. To install from it:
+
+The feed requires HTTP Basic Auth for reads too (ProGet's free edition
+doesn't support anonymous/GPG-signed feeds), so both a sources list entry
+and an `apt` auth config are needed:
+
+```
+echo "deb [trusted=yes] https://pkgs.daubney.dev/debian/main stable main" | sudo tee /etc/apt/sources.list.d/bitwardensync.list
+sudo tee /etc/apt/auth.conf.d/bitwardensync.conf <<EOF
+machine pkgs.daubney.dev login <PKGS_USER> password <PKGS_PASSWORD>
+EOF
+sudo chmod 600 /etc/apt/auth.conf.d/bitwardensync.conf
+sudo apt update
+sudo apt install bitwardensync
+```
+
+(`trusted=yes` skips GPG signature verification — the feed isn't
+GPG-signed.)

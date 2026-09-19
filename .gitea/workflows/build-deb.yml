@@ -1,0 +1,62 @@
+# Requires the runner to have Docker available (packaging/build.sh shells
+# out to `docker build`/`docker run`) — e.g. an act_runner with the host's
+# docker.sock mounted in.
+name: Build Debian package
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build .deb package
+        run: packaging/build.sh
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwardensync-deb
+          path: dist/*.deb
+
+      # Only publishes on pushes to main, not PRs/branches, so building the
+      # same version twice doesn't fight over the same package feed entry.
+      - name: Publish to pkgs.daubney.dev
+        id: publish
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          PKGS_USER: ${{ secrets.PKGS_USER }}
+          PKGS_PASSWORD: ${{ secrets.PKGS_PASSWORD }}
+        run: |
+          curl -sS -f \
+            -u "${PKGS_USER}:${PKGS_PASSWORD}" \
+            --upload-file dist/*.deb \
+            "https://pkgs.daubney.dev/debian/main/upload/stable/main"
+
+      - name: Notify package published
+        if: success() && steps.publish.outcome == 'success'
+        env:
+          NTFY_USER: ${{ secrets.NTFY_USER }}
+          NTFY_PASSWORD: ${{ secrets.NTFY_PASSWORD }}
+        run: |
+          curl -sS -u "${NTFY_USER}:${NTFY_PASSWORD}" \
+            -H "Title: bitwardensync package published" \
+            -H "Tags: package" \
+            -d "Published to pkgs.daubney.dev (debian/main, stable/main) from ${{ github.sha }}" \
+            "https://notify.daubney.dev/bitwardensync"
+
+      - name: Notify package publish failed
+        if: failure() && steps.publish.outcome == 'failure'
+        env:
+          NTFY_USER: ${{ secrets.NTFY_USER }}
+          NTFY_PASSWORD: ${{ secrets.NTFY_PASSWORD }}
+        run: |
+          curl -sS -u "${NTFY_USER}:${NTFY_PASSWORD}" \
+            -H "Title: bitwardensync package publish failed" \
+            -H "Priority: high" \
+            -H "Tags: x" \
+            -d "Publish to pkgs.daubney.dev failed on ${{ github.sha }}" \
+            "https://notify.daubney.dev/bitwardensync"
