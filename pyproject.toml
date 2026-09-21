@@ -24,4 +24,30 @@ packages = ["src/bitwardensync"]
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "ruff>=0.14",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "SIM",  # simplify
+    "C4",   # comprehensions
+    "RET",  # return style
+    "ARG",  # unused arguments
+    "PTH",  # prefer pathlib
+    "S",    # bandit security checks
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests deliberately hardcode fake credentials, assert, and accept unused
+# **kwargs in mock signatures.
+"tests/*" = ["S101", "S105", "S106", "S107", "ARG001", "ARG002"]

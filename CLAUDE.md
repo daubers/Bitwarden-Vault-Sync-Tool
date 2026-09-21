@@ -15,9 +15,14 @@ uv run bitwardensync --dry-run              # show what would change, no writes
 uv run bitwardensync --on-conflict vault    # keep Vault's value on conflict instead of Bitwarden's
 uv run pytest                # run all tests
 uv run pytest tests/test_vault.py::test_write_secret_posts_data   # run a single test
+uv run ruff check .          # lint
+uv run ruff format .         # format
 ```
 
-No lint/format tooling is configured yet.
+Lint/format is Ruff, configured in `pyproject.toml` (line length 100). CI runs
+`ruff check` and `ruff format --check` in a job separate from pytest. Tests get
+per-file ignores for the bandit rules about hardcoded credentials and for
+`assert`, since fake secrets and bare asserts are the point there.
 
 ### Local dev stack
 

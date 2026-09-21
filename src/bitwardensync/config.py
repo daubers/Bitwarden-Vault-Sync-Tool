@@ -16,7 +16,7 @@ class Config:
     bw_server_url: str | None = None
 
     @classmethod
-    def from_env(cls) -> "Config":
+    def from_env(cls) -> Config:
         return cls(
             bw_client_id=_require_env("BW_CLIENTID"),
             bw_client_secret=_require_env("BW_CLIENTSECRET"),

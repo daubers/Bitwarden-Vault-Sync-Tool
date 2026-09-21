@@ -128,6 +128,20 @@ doesn't exist, the writes will fail with their own clear error instead.
 uv run pytest
 ```
 
+## Linting
+
+[Ruff](https://docs.astral.sh/ruff/) handles both linting and formatting; it
+is configured in `pyproject.toml` (100-column lines, targeting Python 3.13).
+
+```
+uv run ruff check .          # lint
+uv run ruff check --fix .    # lint and apply safe autofixes
+uv run ruff format .         # format
+```
+
+CI runs `ruff check` and `ruff format --check` as a separate job alongside the
+tests, so unformatted code fails the build.
+
 ## Debian package
 
 `bitwardensync` requires Python >= 3.13 and dependency versions newer than

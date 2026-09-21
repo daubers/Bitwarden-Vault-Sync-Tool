@@ -23,9 +23,11 @@ def _run(existing, on_conflict="bitwarden", dry_run=False):
     fake_vault = MagicMock()
     fake_vault.read_secret.return_value = existing
 
-    with patch("bitwardensync.sync.BitwardenClient", return_value=fake_bitwarden):
-        with patch("bitwardensync.sync.VaultClient", return_value=fake_vault):
-            run_sync(CONFIG, on_conflict=on_conflict, dry_run=dry_run)
+    with (
+        patch("bitwardensync.sync.BitwardenClient", return_value=fake_bitwarden),
+        patch("bitwardensync.sync.VaultClient", return_value=fake_vault),
+    ):
+        run_sync(CONFIG, on_conflict=on_conflict, dry_run=dry_run)
 
     return fake_vault
 

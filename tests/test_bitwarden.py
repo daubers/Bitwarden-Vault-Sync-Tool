@@ -107,15 +107,17 @@ def test_list_items_authenticates_and_decrypts_real_data():
         assert headers["Authorization"] == f"Bearer {ACCESS_TOKEN}"
         return _FakeResponse(SYNC_RESPONSE)
 
-    with patch("requests.Session.post", side_effect=fake_post):
-        with patch("requests.Session.get", side_effect=fake_get):
-            client = BitwardenClient(
-                client_id="user.abc",
-                client_secret="secret",
-                password=PASSWORD,
-                server_url="https://localhost:8443",
-            )
-            items = client.list_items()
+    with (
+        patch("requests.Session.post", side_effect=fake_post),
+        patch("requests.Session.get", side_effect=fake_get),
+    ):
+        client = BitwardenClient(
+            client_id="user.abc",
+            client_secret="secret",
+            password=PASSWORD,
+            server_url="https://localhost:8443",
+        )
+        items = client.list_items()
 
     assert len(items) == 1
     assert items[0].name == "Postgres (staging)"

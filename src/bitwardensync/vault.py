@@ -70,9 +70,7 @@ class VaultClient:
     def read_secret(self, path: str) -> dict[str, str] | None:
         """Return the latest version's data, or None if it doesn't exist (or
         was soft-deleted)."""
-        response = self._session.get(
-            f"{self._base_url}/v1/{self._mount}/data/{path.strip('/')}"
-        )
+        response = self._session.get(f"{self._base_url}/v1/{self._mount}/data/{path.strip('/')}")
         if response.status_code == 404:
             return None
         body = _parse_response(response, f"read secret at '{path}'")
@@ -94,8 +92,7 @@ def _is_kv2(mount_info: dict) -> bool:
 def _parse_response(response: requests.Response, action: str) -> dict:
     if not response.ok:
         raise VaultError(
-            f"Vault API request to {action} failed "
-            f"({response.status_code}): {response.text[:500]}"
+            f"Vault API request to {action} failed ({response.status_code}): {response.text[:500]}"
         )
     if not response.content:
         return {}

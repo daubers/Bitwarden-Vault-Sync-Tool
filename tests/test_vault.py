@@ -1,6 +1,8 @@
 import json
 from unittest.mock import patch
 
+import pytest
+
 from bitwardensync.vault import VaultClient, VaultError, VaultPermissionError
 
 
@@ -39,51 +41,53 @@ def test_kv2_mount_exists_false_for_kv_v1():
 
 def test_ensure_kv2_mount_noop_when_already_present():
     mounts = {"secret/": {"type": "kv", "options": {"version": "2"}}}
-    with patch("requests.Session.get", return_value=_FakeResponse(mounts)):
-        with patch("requests.Session.post") as post:
-            _client().ensure_kv2_mount()
-            post.assert_not_called()
+    with (
+        patch("requests.Session.get", return_value=_FakeResponse(mounts)),
+        patch("requests.Session.post") as post,
+    ):
+        _client().ensure_kv2_mount()
+        post.assert_not_called()
 
 
 def test_ensure_kv2_mount_creates_when_missing():
-    with patch("requests.Session.get", return_value=_FakeResponse({})):
-        with patch("requests.Session.post", return_value=_FakeResponse({}, 204)) as post:
-            _client(mount="new-mount").ensure_kv2_mount()
-            post.assert_called_once()
-            args, kwargs = post.call_args
-            assert args[0].endswith("/v1/sys/mounts/new-mount")
-            assert kwargs["json"] == {"type": "kv", "options": {"version": "2"}}
+    with (
+        patch("requests.Session.get", return_value=_FakeResponse({})),
+        patch("requests.Session.post", return_value=_FakeResponse({}, 204)) as post,
+    ):
+        _client(mount="new-mount").ensure_kv2_mount()
+        post.assert_called_once()
+        args, kwargs = post.call_args
+        assert args[0].endswith("/v1/sys/mounts/new-mount")
+        assert kwargs["json"] == {"type": "kv", "options": {"version": "2"}}
 
 
 def test_ensure_kv2_mount_raises_permission_error_on_create_403():
-    with patch("requests.Session.get", return_value=_FakeResponse({})):
-        with patch("requests.Session.post", return_value=_FakeResponse(status_code=403)):
-            try:
-                _client(mount="new-mount").ensure_kv2_mount()
-                raise AssertionError("expected VaultPermissionError")
-            except VaultPermissionError:
-                pass
+    with (
+        patch("requests.Session.get", return_value=_FakeResponse({})),
+        patch("requests.Session.post", return_value=_FakeResponse(status_code=403)),
+        pytest.raises(VaultPermissionError),
+    ):
+        _client(mount="new-mount").ensure_kv2_mount()
 
 
 def test_get_mount_info_raises_permission_error_on_list_403():
-    with patch("requests.Session.get", return_value=_FakeResponse(status_code=403)):
-        try:
-            _client().kv2_mount_exists()
-            raise AssertionError("expected VaultPermissionError")
-        except VaultPermissionError:
-            pass
+    with (
+        patch("requests.Session.get", return_value=_FakeResponse(status_code=403)),
+        pytest.raises(VaultPermissionError),
+    ):
+        _client().kv2_mount_exists()
 
 
 def test_ensure_kv2_mount_raises_on_wrong_engine_type():
     mounts = {"secret/": {"type": "system", "options": None}}
-    with patch("requests.Session.get", return_value=_FakeResponse(mounts)):
-        try:
-            _client().ensure_kv2_mount()
-            raise AssertionError("expected VaultError")
-        except VaultPermissionError:
-            raise AssertionError("should not be a permission error")
-        except VaultError:
-            pass
+    with (
+        patch("requests.Session.get", return_value=_FakeResponse(mounts)),
+        pytest.raises(VaultError) as excinfo,
+    ):
+        _client().ensure_kv2_mount()
+    # VaultPermissionError subclasses VaultError, so pytest.raises alone would
+    # not catch a regression that turned this into a permission error.
+    assert not isinstance(excinfo.value, VaultPermissionError)
 
 
 def test_write_secret_posts_data():
